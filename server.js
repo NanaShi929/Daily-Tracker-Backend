@@ -41,10 +41,10 @@ app.put("/api/activities", async (req, res) => {
   const { date, time, activities } = req.body;
 
   try {
-    // Check if a record for the specified date exists
+    // Format the date to match the database format
     const formattedDate = moment(date, "DD-MM-YYYY").format("DD-MM-YYYY");
 
-
+    // Find the record by date
     let record = await Activity.findOne({ date: formattedDate });
 
     if (record) {
@@ -58,14 +58,13 @@ app.put("/api/activities", async (req, res) => {
 
       console.log("Updated activities:", record.activities);
 
-      // Directly update the existing record in the database using updateOne
+      // Update the record with new activities and time
       const result = await Activity.updateOne(
-        { date },
-        {time},
-        { $set: { activities: record.activities } }
+        { date: formattedDate },
+        { $set: { activities: record.activities, time: time } }
       );
 
-      // Ensure the update was successful
+      // Log the result of the update
       if (result.modifiedCount > 0) {
         console.log("Activities updated successfully");
       } else {
@@ -74,8 +73,8 @@ app.put("/api/activities", async (req, res) => {
     } else {
       console.log("No existing record, creating a new one for date:", date);
 
-      // If no record exists, create a new one
-      record = new Activity({ date, time, activities });
+      // Create a new record if none exists for the date
+      record = new Activity({ date: formattedDate, time, activities });
       await record.save();
       console.log("Saved new record:", record);
     }
