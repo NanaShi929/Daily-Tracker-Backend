@@ -41,39 +41,40 @@ app.put("/api/activities", async (req, res) => {
   const { date, time, activities } = req.body;
 
   try {
-    // Format the date to match the database format
+    // Validate and format the date
+    if (!moment(date, "DD-MM-YYYY", true).isValid()) {
+      return res
+        .status(400)
+        .json({ error: "Invalid date format. Use DD-MM-YYYY." });
+    }
+
     const formattedDate = moment(date, "DD-MM-YYYY").format("DD-MM-YYYY");
 
-    // Find the record by date
     let record = await Activity.findOne({ date: formattedDate });
 
     if (record) {
       console.log("Existing record found:", record);
 
-      // Merge the existing activities with the new ones
       for (const [activity, timeSpent] of Object.entries(activities)) {
         record.activities[activity] =
           (record.activities[activity] || 0) + timeSpent;
       }
 
-      console.log("Updated activities:", record.activities);
-
-      // Update the record with new activities and time
       const result = await Activity.updateOne(
         { date: formattedDate },
         { $set: { activities: record.activities, time: time } }
       );
 
-      // Log the result of the update
       if (result.modifiedCount > 0) {
         console.log("Activities updated successfully");
       } else {
         console.log("No changes were made");
       }
     } else {
-      console.log("No existing record, creating a new one for date:", date);
-
-      // Create a new record if none exists for the date
+      console.log(
+        "No existing record, creating a new one for date:",
+        formattedDate
+      );
       record = new Activity({ date: formattedDate, time, activities });
       await record.save();
       console.log("Saved new record:", record);
@@ -85,6 +86,7 @@ app.put("/api/activities", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 // Route to get all activities (optional, for fetching)
 app.get("/api/activities", async (req, res) => {
